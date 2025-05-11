@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Sensory Storytelling</title>
+    <style>
+        body {
+            background-color: #b9ddf9;
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+        }
+        .story-container {
+            background: #2d3748;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            position: relative;
+            animation: fadeIn 1s ease-in-out;
+        }
+        button {
+            background-color: #3182ce;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2b6cb0;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        #videoContainer {
+            display: none;
+            width: 400px;
+            margin-top: 20px;
+        }
+        #typeInputContainer {
+            display: none; /* Initially hidden */
+            margin-top: 20px;
+        }
+        #typeInput {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Multi-Sensory Storytelling</h1>
+    <div id="prompt" class="story-container">Loading...</div>
+    <div class="story-container" id="story"></div>
+    <video id="videoContainer" controls>
+        <source id="videoSource" src="" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    <button onclick="speakStory()" id="audioButton">🔊 Hear Story</button>
+    <button onclick="nextStory()">⏭ Next Story</button>
+
+    <!-- New input field and button for deaf users -->
+    <div id="typeInputContainer">
+        <input type="text" id="typeInput" placeholder="Type 'blind' or 'deaf'">
+        <button onclick="handleTypeInput()">Submit</button>
+    </div>
+
+    <script>
+        const stories = [
+            { text: "Lumi, the tiny firefly, always felt insignificant. But one stormy night, when darkness engulfed the forest, Lumi's small glow led a group of lost travelers to safety, proving that even the smallest light can make a big difference.", video: "sign_language_story1.mp4" },
+            { text: "Bubbles, the seahorse, feared the vast ocean. But when his best friend got caught in a current, he braved the depths, discovering courage within himself and realizing that fear fades when we help those we love.", video: "sign_language_story2.mp4" },
+            { text: "Sky, the eagle, was afraid of heights. But with encouragement from his wise grandfather, he took a leap of faith and soared high above the mountains, learning that true strength comes from within.", video: "sign_language_story3.mp4" }
+        ];
+        let storyIndex = 0;
+        let isSpeaking = false;
+        let userType = "";
+
+        // Ask the user if they are blind or deaf
+        function askUserType() {
+            document.getElementById("prompt").innerText = "Are you blind or deaf? Speak or type.";
+            speakText("Are you blind or deaf? Say 'blind' or 'deaf'.");
+            startListeningForUserType();
+            showTypeInput(); // Show the input field for deaf users
+        }
+
+        // Show the input field for deaf users
+        function showTypeInput() {
+            document.getElementById("typeInputContainer").style.display = "block";
+        }
+
+        // Handle typed input from deaf users
+        function handleTypeInput() {
+            const input = document.getElementById("typeInput").value.toLowerCase();
+            if (input === "blind" || input === "deaf") {
+                handleUserType(input);
+                document.getElementById("typeInputContainer").style.display = "none"; // Hide input after submission
+            } else {
+                alert("Please type 'blind' or 'deaf'.");
+            }
+        }
+
+        // Start listening for user type (blind or deaf)
+        function startListeningForUserType() {
+            if (!('webkitSpeechRecognition' in window)) {
+                alert("Speech recognition not supported in this browser.");
+                return;
+            }
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = "en-US";
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+            recognition.continuous = false;
+            
+            recognition.onresult = function(event) {
+                const userResponse = event.results[0][0].transcript.toLowerCase();
+                handleUserType(userResponse);
+            };
+
+            recognition.onerror = function() {
+                console.log("No voice detected. Please try again.");
+                askUserType();
+            };
+
+            recognition.start();
+        }
+
+        // Handle the user's response (blind or deaf)
+        function handleUserType(input) {
+            if (input.includes("blind")) {
+                userType = "blind";
+                document.getElementById("prompt").innerText = "You are blind. I will assist you with audio guidance.";
+                speakText("I will assist you with audio storytelling.");
+                displayStory();
+                startBlindUserInteraction();
+            } else if (input.includes("deaf")) {
+                userType = "deaf";
+                document.getElementById("prompt").innerText = "You are deaf. You can watch the story in sign language.";
+                displayStory();
+            } else {
+                speakText("I did not understand. Please say 'blind' or 'deaf'.");
+                askUserType();
+            }
+        }
+
+        // Start listening for commands from blind users
+        function startBlindUserInteraction() {
+            speakText("You can say 'next story' to hear the next story or 'repeat' to hear the current story again.");
+            setTimeout(() => {
+                startListeningForCommands();
+            }, 3000);
+        }
+
+        // Listen for commands like "next story" or "repeat"
+        function startListeningForCommands() {
+            if (!('webkitSpeechRecognition' in window)) {
+                alert("Speech recognition not supported in this browser.");
+                return;
+            }
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = "en-US";
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+            recognition.continuous = true;
+            
+            recognition.onresult = function(event) {
+                const command = event.results[0][0].transcript.toLowerCase();
+                if (command.includes("next story")) {
+                    nextStory();
+                } else if (command.includes("repeat")) {
+                    speakStory();
+                }
+            };
+
+            recognition.start();
+        }
+
+        // Display the current story
+        function displayStory() {
+            document.getElementById("story").innerText = stories[storyIndex].text;
+            
+            if (userType === "deaf") {
+                document.getElementById("videoContainer").style.display = "block";
+                document.getElementById("videoSource").src = stories[storyIndex].video;
+                document.getElementById("videoContainer").load();
+                document.getElementById("audioButton").style.display = "none";
+            } else {
+                document.getElementById("videoContainer").style.display = "none";
+                document.getElementById("audioButton").style.display = "block";
+            }
+        }
+
+        // Speak text using the browser's speech synthesis
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = "en-US";
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        // Speak the current story
+        function speakStory() {
+            if (userType === "blind" && 'speechSynthesis' in window) {
+                if (isSpeaking) return;
+                isSpeaking = true;
+                const utterance = new SpeechSynthesisUtterance(stories[storyIndex].text);
+                utterance.lang = "en-US";
+                utterance.rate = 1;
+                utterance.pitch = 1;
+                utterance.volume = 1;
+                utterance.onend = () => { isSpeaking = false; };
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        // Move to the next story
+        function nextStory() {
+            if (isSpeaking) return;
+            storyIndex = (storyIndex + 1) % stories.length;
+            displayStory();
+            if (userType === "blind") speakStory();
+        }
+
+        // Start the application
+        window.onload = function() {
+            askUserType(); // Automatically start asking on page load
+        };
+    </script>
+</body>
+</html>
